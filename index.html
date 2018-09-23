@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta name="author" content="Vinícius Campitelli">
+
+        <title>Boas práticas na prática</title>
+
+        <link rel="stylesheet" href="reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="reveal.js/css/theme/sky.css">
+        <link rel="stylesheet" href="css/prism.css">
+        <link rel="stylesheet" href="css/app.css">
+
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = 'reveal.js/' + window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+    </head>
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>Boas práticas</h1>
+                    <h2 class="fragment">na prática</h2>
+                </section>
+                <section>
+                    <h2>Quem sou eu?</h2>
+                    <ul>
+                        <li>Vinícius Campitelli &bull; <a href="http://vcampitelli.github.io">vcampitelli.github.io</a></li>
+                        <li>MT4 Tecnologia &bull; @MediaPost &bull; Curseduca</li>
+                    </ul>
+                </section>
+                <section>
+                    <ul>
+                        <li>PHPCS</li>
+                        <li>PHPMD</li>
+                        <li>SOLID</li>
+                        <li>Object Calisthenics</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>PHPCS</h2>
+                </section>
+
+                <section>
+                    <h2>PHPMD</h2>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>SOLID</h2>
+                    </section>
+
+                    <!-- SOLID: SRP -->
+                    <section>
+                        <h3>Single Responsibility Principle</h3>
+                        <p class="fragment">uma classe só pode ter uma única responsabilidade</p>
+                    </section>
+                    <section>
+
+                        <pre><code class="language-php">class Report {
+    public function __construct(Pdo $dbh) { /* ... */ }
+
+    public function fetch() { /* ... */ }
+
+    public function asHtml() { /* ... */ }
+
+    public function asJson() { /* ... */ }
+}</code></pre>
+                    </section>
+                    <section>
+                        <h4>Como resolver?</h4>
+                        <p class="fragment">Especialize suas classes dividindo-as até que tenham somente um objetivo</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class Report {
+    public function __construct(Pdo $dbh) { /* ... */ }
+    public function fetch() { /* ... */ }
+}
+
+class HtmlReportWriter {
+    public function export(Report $report) { /* ... */ }
+}
+
+class JsonReportWriter {
+    public function export(Report $report) { /* ... */ }
+}</code></pre>
+                    </section>
+
+                    <!-- SOLID: Open Closed -->
+                    <section>
+                        <h3>Open Closed Principle</h3>
+                        <p class="fragment">entidades devem ser abertas para extensão mas fechadas para modificação</p>
+                    </section>
+                    <section>
+                        <p>É possível implementar uma nova funcionalidade em seu sistema somente adicionando novas classes ao invés de modificá-las?</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class ReportExporter {
+    public function toCsv(Report $report) {
+        $tempFile = $this->createNewFile();
+        $handler = fopen($tempFile, 'w');
+        foreach ($report as $row) {
+            fputcsv($handler, $row);
+        }
+        fclose($handler);
+        return $tempFile;
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        Como adicionar um método que exporta como PDF?
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class ReportExporter {
+    public function toCsv(Report $report) { /* ... */ }
+
+    public function toPdf(Report $report) { /* ... */ }
+}</code></pre>
+                    </section>
+                    <section>
+                        <h4>Como resolver?</h4>
+                        <p class="fragment">Crie estruturas polimórficas.</p>
+                        <p class="fragment">Em PHP, utilize interfaces!</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class ReportExporter {
+    public function export(Report $report, WriterInterface $writer) {
+        $tempFile = $this->createNewFile();
+        $writer->setFile($tempFile);
+        foreach ($report as $row) {
+            $writer->write($row);
+        }
+        $writer->finish();
+        return $tempFile;
+    }
+}</code></pre>
+                    </section>
+
+                    <!-- SOLID: Liskov Substitution -->
+                    <section>
+                        <h3>Liskov Substitution Principle</h3>
+                        <p class="fragment">objetos em um programa deveriam ser substituíveis por instâncias de seus subtipos sem alterar a exatidão do programa</p>
+                    </section>
+                    <section>
+                        <ul>
+                            <li class="fragment">Pré-condições não podem ser reforçadas em uma subclasse</li>
+                            <li class="fragment">Pós-condições não podem ser enfraquecidas em uma subclasse</li>
+                            <li class="fragment">Um método em uma subclasse só pode lançar as mesmas Exceções da classe base</li>
+                            <li class="fragment">Covariâncias, invariâncias</li>
+                            <li class="fragment">Design by contract</li>
+                            <li class="fragment">This strongly suggests that inheritance should never be used when the sub-class restricts the freedom implicit in the base class, but should only be used when the sub-class adds extra detail to the concept represented by the base class as in 'Monkey' is-an 'Animal'.</li>
+                        </ul>
+                    </section>
+
+                    <!-- SOLID: Interface Segregation -->
+                    <section>
+                        <h3>Interface Segregation Principle</h3>
+                        <p class="fragment">é preferível ter várias interfaces mais específicas do que uma genérica</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">interface WriterInterface {
+    public function setFile($filename);
+    public function write(array $data);
+    public function flush();
+    public function finish();
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class CsvWriter extends WriterInterface {
+    public function setFile($filename) {
+        $this->handler = fopen($filename, 'w');
+    }
+    public function write(array $data) { /* faz algo */ }
+    public function flush() {
+        // void
+    }
+    public function finish() {
+        fclose($this->handler);
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class DbWriter extends WriterInterface {
+    public function setFile($filename) {
+        // void
+    }
+    public function write(array $data) { /* faz algo */ }
+    public function flush() {
+        // void
+    }
+    public function finish() {
+        $this->dbh->close();
+    }
+}</code></pre>
+                    </section>
+
+                    <!-- SOLID: Dependency Inversion -->
+                    <section>
+                        <h3>Dependency Inversion Principle</h3>
+                        <p class="fragment">dependa de abstrações <em>(interfaces)</em> ao invés de classes concretas</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">// PSR15 - https://www.php-fig.org/psr/psr-15/
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+
+interface RequestHandlerInterface {
+    public function handle(
+        ServerRequestInterface $request
+    ): ResponseInterface;
+}</code></pre>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Object Calisthenics</h2>
+                </section>
+
+                <section>
+                    <h2>Referências</h2>
+                    <ul>
+                        <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
+                        <li><a href="https://phpbestpractices.org/">phpbestpractices.org</a></li>
+                        <li><a href="https://phptherightway.com/">phptherightway.com</a></li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <script src="reveal.js/lib/js/head.min.js"></script>
+        <script src="reveal.js/js/reveal.js"></script>
+
+        <script>
+            Reveal.initialize({
+                dependencies: [
+                    { src: 'js/prism.js', async: true }
+                ],
+                slideNumber: true,
+                mouseWheel: true,
+                history: true,
+                overview: false
+            });
+        </script>
+    </body>
+</html>

@@ -35,20 +35,13 @@
                     </ul>
                 </section>
                 <section>
+                    <h2>Agenda</h2>
                     <ul>
-                        <li>PHPCS</li>
-                        <li>PHPMD</li>
                         <li>SOLID</li>
                         <li>Object Calisthenics</li>
+                        <li>PHPCS</li>
+                        <li>PHPMD</li>
                     </ul>
-                </section>
-
-                <section>
-                    <h2>PHPCS</h2>
-                </section>
-
-                <section>
-                    <h2>PHPMD</h2>
                 </section>
 
                 <section>
@@ -148,14 +141,70 @@ class JsonReportWriter {
                         <p class="fragment">objetos em um programa deveriam ser substituíveis por instâncias de seus subtipos sem alterar a exatidão do programa</p>
                     </section>
                     <section>
-                        <ul>
-                            <li class="fragment">Pré-condições não podem ser reforçadas em uma subclasse</li>
-                            <li class="fragment">Pós-condições não podem ser enfraquecidas em uma subclasse</li>
-                            <li class="fragment">Um método em uma subclasse só pode lançar as mesmas Exceções da classe base</li>
-                            <li class="fragment">Covariâncias, invariâncias</li>
-                            <li class="fragment">Design by contract</li>
-                            <li class="fragment">This strongly suggests that inheritance should never be used when the sub-class restricts the freedom implicit in the base class, but should only be used when the sub-class adds extra detail to the concept represented by the base class as in 'Monkey' is-an 'Animal'.</li>
-                        </ul>
+                        <p>Meu sistema precisa funcionar corretamente ao trocar o tipo do <code>Writer</code></p>
+                        <pre><code class="language-php">$writer = new CsvWriter();
+$writer->write(/* ... */);
+
+$writer = new FileWriter();
+$writer->write(/* ... */);
+</code></pre>
+                    </section>
+                    <section>
+                        <p>Pré-condições não podem ser fortalecidas em uma subclasse</p>
+                        <pre><code class="language-php">class DatabaseAdapter {
+    public function query(Statement $statement) { /* ... */ }
+}
+
+class PdoStatement extends Statement {
+    /* ... */
+}
+
+class PdoDatabaseAdapter extends DatabaseAdapter {
+    // Errado!
+    public function query(PdoStatement $statement) { /* ... */ }
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <p>Pós-condições não podem ser enfraquecidas em uma subclasse</p>
+                        <pre><code class="language-php">class Database {
+    public function disconnect() { /* ... */ }
+}
+
+class PersistentDatabase extends Database {
+    public function disconnect() {
+        // um método sobrescrito que não faz nada
+        // significa que a abstração está muito restrita
+    }
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class Retangulo {
+    public function setAltura($altura) {
+        $this->altura = $altura;
+    }
+    public function setLargura($largura) {
+        $this->largura = $largura;
+    }
+}
+
+class Quadrado extends Retangulo {
+    public function setAltura($altura) {
+        $this->altura = $altura;
+        $this->largura = $altura;
+    }
+    public function setLargura($largura) {
+        $this->altura = $largura;
+        $this->largura = $largura;
+    }
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <h4>Como resolver?</h4>
+                        <p class="fragment">Herança não deve ser utilizada quando uma subclasse restringe a liberdade imposta na classe principal, mas sim quando adiciona mais detalhes</p>
+                        <p class="fragment">Nesses casos, use composição.</p>
                     </section>
 
                     <!-- SOLID: Interface Segregation -->
@@ -164,40 +213,25 @@ class JsonReportWriter {
                         <p class="fragment">é preferível ter várias interfaces mais específicas do que uma genérica</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">interface WriterInterface {
-    public function setFile($filename);
-    public function write(array $data);
-    public function flush();
-    public function finish();
+                        <pre><code class="language-php">interface ConfigInterface {
+    public function get($property);
+    public function set($property, $value);
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php">class CsvWriter extends WriterInterface {
-    public function setFile($filename) {
-        $this->handler = fopen($filename, 'w');
-    }
-    public function write(array $data) { /* faz algo */ }
-    public function flush() {
-        // void
-    }
-    public function finish() {
-        fclose($this->handler);
-    }
+                        <p>Mas toda configuração pode ser modificável?</p>
+                        <pre><code class="language-php">interface ConfigInterface {
+    public function get($property);
+}
+
+interface WritableConfigInterface {
+    public function get($property);
+    public function set($property, $value);
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php">class DbWriter extends WriterInterface {
-    public function setFile($filename) {
-        // void
-    }
-    public function write(array $data) { /* faz algo */ }
-    public function flush() {
-        // void
-    }
-    public function finish() {
-        $this->dbh->close();
-    }
-}</code></pre>
+                        <h4>Como resolver?</h4>
+                        <p class="fragment">Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
                     </section>
 
                     <!-- SOLID: Dependency Inversion -->
@@ -208,6 +242,8 @@ class JsonReportWriter {
                     <section>
                         <pre><code class="language-php">// PSR15 - https://www.php-fig.org/psr/psr-15/
 
+namespace Interop\Http\Server;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -217,6 +253,59 @@ interface RequestHandlerInterface {
     ): ResponseInterface;
 }</code></pre>
                     </section>
+                    <section>
+                        <p>Isso facilita muito para fazer testes!</p>
+                        <pre><code class="language-php">class UserRepository {
+    public function __construct(Adapter $adapter) {
+        /* ... */
+    }
+
+    public function create(User $user) {
+        $this->adapter->insert('users', /* ... */);
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class UserRepositoryTest {
+    public function __construct() {
+        $this->adapter = new Adapter();
+        // É preciso sempre limpar a base antes de começar
+        $this->adapter->delete('users');
+    }
+
+    public function run() {
+        $repository = new UserRepository($this->adapter);
+        $repository->save(new User());
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">class UserRepository {
+    public function __construct(AdapterInterface $adapter) {
+        /* ... */
+    }
+
+    public function create(User $user) {
+        $this->adapter->insert('users', /* ... */);
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php">interface AdapterInterface {
+    public function insert($table, array $data);
+}
+class RealAdapter extends AdapterInterface {
+    public function insert($table, array $data) {
+        return $this->pdo->exec('INSERT ...');
+    }
+}
+class TestsAdapter extends AdapterInterface {
+    public function insert($table, array $data) {
+        return true;
+    }
+}
+</code></pre>
+                    </section>
                 </section>
 
                 <section>
@@ -224,9 +313,20 @@ interface RequestHandlerInterface {
                 </section>
 
                 <section>
+                    <h2>PHPCS</h2>
+                </section>
+
+                <section>
+                    <h2>PHPMD</h2>
+                </section>
+
+                <section>
                     <h2>Referências</h2>
                     <ul>
                         <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
+                        <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br</a></li>
+                        <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com</a></li>
+                        <li><a href="https://www.netguru.co/codestories/solid-principles-1-single-responsibility-principle">netguru.co</a></li>
                         <li><a href="https://phpbestpractices.org/">phpbestpractices.org</a></li>
                         <li><a href="https://phptherightway.com/">phptherightway.com</a></li>
                     </ul>

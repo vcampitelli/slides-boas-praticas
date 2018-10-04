@@ -16,7 +16,7 @@
             var link = document.createElement( 'link' );
             link.rel = 'stylesheet';
             link.type = 'text/css';
-            link.href = 'reveal.js/' + window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            link.href = 'reveal.js/' + (window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css');
             document.getElementsByTagName( 'head' )[0].appendChild( link );
         </script>
     </head>
@@ -34,45 +34,43 @@
                         <li>MT4 Tecnologia &bull; @MediaPost &bull; Curseduca</li>
                     </ul>
                 </section>
-                <section>
-                    <h2>Agenda</h2>
-                    <ul>
-                        <li>SOLID</li>
-                        <li>Object Calisthenics</li>
-                        <li>PHPCS</li>
-                        <li>PHPMD</li>
-                    </ul>
-                </section>
 
                 <section>
                     <section>
                         <h2>SOLID</h2>
                     </section>
+                    <section>
+                        <ul id="solid-acronym">
+                            <li><span class="letter-block">S</span>ingle Responsibility Principle</li>
+                            <li><span class="letter-block">O</span>pen Closed Principle</li>
+                            <li><span class="letter-block">L</span>iskov Substitution Principle</li>
+                            <li><span class="letter-block">I</span>nterface Segregation Principle</li>
+                            <li><span class="letter-block">D</span>ependency Inversion Principle</li>
+                        </ul>
+                    </section>
 
                     <!-- SOLID: SRP -->
                     <section>
                         <h3>Single Responsibility Principle</h3>
-                        <p class="fragment">uma classe só pode ter uma única responsabilidade</p>
+                        <p>uma classe só pode ter uma única razão para mudar</p>
                     </section>
                     <section>
 
-                        <pre><code class="language-php">class Report {
-    public function __construct(Pdo $dbh) { /* ... */ }
+                        <pre><code class="language-php line-numbers">class Report
+{
+    public function fetch();
 
-    public function fetch() { /* ... */ }
+    public function asHtml();
 
-    public function asHtml() { /* ... */ }
-
-    public function asJson() { /* ... */ }
+    public function asJson();
 }</code></pre>
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
-                        <p class="fragment">Especialize suas classes dividindo-as até que tenham somente um objetivo</p>
+                        <p>Especialize suas classes dividindo-as até que tenham somente um objetivo</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">class Report {
-    public function __construct(Pdo $dbh) { /* ... */ }
+                        <pre><code class="language-php line-numbers">class Report {
     public function fetch() { /* ... */ }
 }
 
@@ -88,13 +86,13 @@ class JsonReportWriter {
                     <!-- SOLID: Open Closed -->
                     <section>
                         <h3>Open Closed Principle</h3>
-                        <p class="fragment">entidades devem ser abertas para extensão mas fechadas para modificação</p>
+                        <p>entidades devem ser abertas para extensão mas fechadas para modificação</p>
                     </section>
                     <section>
                         <p>É possível implementar uma nova funcionalidade em seu sistema somente adicionando novas classes ao invés de modificá-las?</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">class ReportExporter {
+                        <pre><code class="language-php line-numbers">class ReportExporter {
     public function toCsv(Report $report) {
         $tempFile = $this->createNewFile();
         $handler = fopen($tempFile, 'w');
@@ -110,7 +108,7 @@ class JsonReportWriter {
                         Como adicionar um método que exporta como PDF?
                     </section>
                     <section>
-                        <pre><code class="language-php">class ReportExporter {
+                        <pre><code class="language-php line-numbers">class ReportExporter {
     public function toCsv(Report $report) { /* ... */ }
 
     public function toPdf(Report $report) { /* ... */ }
@@ -118,19 +116,17 @@ class JsonReportWriter {
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
-                        <p class="fragment">Crie estruturas polimórficas.</p>
-                        <p class="fragment">Em PHP, utilize interfaces!</p>
+                        <p>Crie estruturas polimórficas.</p>
+                        <p>Em PHP, utilize interfaces!</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">class ReportExporter {
+                        <pre><code class="language-php line-numbers">class ReportExporter {
     public function export(Report $report, WriterInterface $writer) {
-        $tempFile = $this->createNewFile();
-        $writer->setFile($tempFile);
+        $writer->init();
         foreach ($report as $row) {
             $writer->write($row);
         }
-        $writer->finish();
-        return $tempFile;
+        return $writer->finish();
     }
 }</code></pre>
                     </section>
@@ -138,11 +134,11 @@ class JsonReportWriter {
                     <!-- SOLID: Liskov Substitution -->
                     <section>
                         <h3>Liskov Substitution Principle</h3>
-                        <p class="fragment">objetos em um programa deveriam ser substituíveis por instâncias de seus subtipos sem alterar a exatidão do programa</p>
+                        <p>objetos em um programa deveriam ser substituíveis por instâncias de seus subtipos sem alterar a exatidão do programa</p>
                     </section>
                     <section>
                         <p>Meu sistema precisa funcionar corretamente ao trocar o tipo do <code>Writer</code></p>
-                        <pre><code class="language-php">$writer = new CsvWriter();
+                        <pre><code class="language-php line-numbers">$writer = new CsvWriter();
 $writer->write(/* ... */);
 
 $writer = new FileWriter();
@@ -151,36 +147,23 @@ $writer->write(/* ... */);
                     </section>
                     <section>
                         <p>Pré-condições não podem ser fortalecidas em uma subclasse</p>
-                        <pre><code class="language-php">class DatabaseAdapter {
+                        <pre><code class="language-php line-numbers">class DatabaseAdapter {
     public function query(Statement $statement) { /* ... */ }
 }
 
-class PdoStatement extends Statement {
+class MyPdoStatement extends Statement {
     /* ... */
 }
 
 class PdoDatabaseAdapter extends DatabaseAdapter {
     // Errado!
-    public function query(PdoStatement $statement) { /* ... */ }
+    public function query(MyPdoStatement $statement) { /* ... */ }
 }
 </code></pre>
                     </section>
                     <section>
                         <p>Pós-condições não podem ser enfraquecidas em uma subclasse</p>
-                        <pre><code class="language-php">class Database {
-    public function disconnect() { /* ... */ }
-}
-
-class PersistentDatabase extends Database {
-    public function disconnect() {
-        // um método sobrescrito que não faz nada
-        // significa que a abstração está muito restrita
-    }
-}
-</code></pre>
-                    </section>
-                    <section>
-                        <pre><code class="language-php">class Retangulo {
+                        <pre><code class="language-php line-numbers">class Retangulo {
     public function setAltura($altura) {
         $this->altura = $altura;
     }
@@ -203,24 +186,28 @@ class Quadrado extends Retangulo {
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
-                        <p class="fragment">Herança não deve ser utilizada quando uma subclasse restringe a liberdade imposta na classe principal, mas sim quando adiciona mais detalhes</p>
-                        <p class="fragment">Nesses casos, use composição.</p>
+                        <p>Herança não deve ser utilizada quando uma subclasse restringe a liberdade imposta na classe principal, mas sim quando adiciona mais detalhes</p>
+                        <p>Nesses casos, use composição.</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">class
+</code></pre>
                     </section>
 
                     <!-- SOLID: Interface Segregation -->
                     <section>
                         <h3>Interface Segregation Principle</h3>
-                        <p class="fragment">é preferível ter várias interfaces mais específicas do que uma genérica</p>
+                        <p>é preferível ter várias interfaces mais específicas do que uma genérica</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">interface ConfigInterface {
+                        <pre><code class="language-php line-numbers">interface ConfigInterface {
     public function get($property);
     public function set($property, $value);
 }</code></pre>
                     </section>
                     <section>
                         <p>Mas toda configuração pode ser modificável?</p>
-                        <pre><code class="language-php">interface ConfigInterface {
+                        <pre><code class="language-php line-numbers">interface ConfigInterface {
     public function get($property);
 }
 
@@ -231,16 +218,16 @@ interface WritableConfigInterface {
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
-                        <p class="fragment">Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
+                        <p>Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
                     </section>
 
                     <!-- SOLID: Dependency Inversion -->
                     <section>
                         <h3>Dependency Inversion Principle</h3>
-                        <p class="fragment">dependa de abstrações <em>(interfaces)</em> ao invés de classes concretas</p>
+                        <p>dependa de abstrações <em>(interfaces)</em> ao invés de classes concretas</p>
                     </section>
                     <section>
-                        <pre><code class="language-php">// PSR15 - https://www.php-fig.org/psr/psr-15/
+                        <pre><code class="language-php line-numbers">// PSR15 - https://www.php-fig.org/psr/psr-15/
 
 namespace Interop\Http\Server;
 
@@ -255,7 +242,7 @@ interface RequestHandlerInterface {
                     </section>
                     <section>
                         <p>Isso facilita muito para fazer testes!</p>
-                        <pre><code class="language-php">class UserRepository {
+                        <pre><code class="language-php line-numbers">class UserRepository {
     public function __construct(Adapter $adapter) {
         /* ... */
     }
@@ -266,7 +253,7 @@ interface RequestHandlerInterface {
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php">class UserRepositoryTest {
+                        <pre><code class="language-php line-numbers">class UserRepositoryTest {
     public function __construct() {
         $this->adapter = new Adapter();
         // É preciso sempre limpar a base antes de começar
@@ -280,7 +267,7 @@ interface RequestHandlerInterface {
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php">class UserRepository {
+                        <pre><code class="language-php line-numbers">class UserRepository {
     public function __construct(AdapterInterface $adapter) {
         /* ... */
     }
@@ -291,7 +278,7 @@ interface RequestHandlerInterface {
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php">interface AdapterInterface {
+                        <pre><code class="language-php line-numbers">interface AdapterInterface {
     public function insert($table, array $data);
 }
 class RealAdapter extends AdapterInterface {
@@ -309,24 +296,294 @@ class TestsAdapter extends AdapterInterface {
                 </section>
 
                 <section>
-                    <h2>Object Calisthenics</h2>
+                    <section>
+                        <h2>ODWFODKNN</h2>
+                    </section>
+                    <section>
+                        <ul>
+                            <li>Only One Level Of Indentation Per Method</li>
+                            <li>Don't Use The ELSE Keyword</li>
+                            <li>Wrap All Primitives And Strings</li>
+                            <li>First Class Collections</li>
+                            <li>One Dot Per Line</li>
+                            <li>Don't Abbreviate</li>
+                            <li>Keep All Entities Small</li>
+                            <li>No Classes With More Than Two Instance Variables</li>
+                            <li>No Getters/Setters/Properties</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Object Calisthenics</h2>
+                    </section>
+                    <section>
+                        <h3>Only One Level Of Indentation Per Method</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {
+    foreach ($files as $file) {
+        if (!is_file($file)) {
+            throw new RuntimeException("{$file} não é válido");
+        }
+        switch (pathinfo($file, PATHINFO_EXTENSION)) {
+            case 'js':
+                // ...
+                break;
+
+            case 'html':
+                // ...
+                break;
+
+            case 'css':
+                // ...
+                break;
+        }
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {
+    foreach ($files as $file) {
+        $this->parseFile($file);
+    }
+}
+
+protected function parseFile($file) {
+    if (!is_file($file)) {
+        throw new RuntimeException("{$file} não é válido");
+    }
+    $this->getParserForExtension(pathinfo($file, PATHINFO_EXTENSION))
+        ->parse($file);
+}
+
+protected function getParserForExtension($extension) {
+    if (isset($this->parsersByExtension[$extension])) {
+        return $this->parsersByExtension[$extension];
+    }
+
+    throw new DomainException("Nenhum minificador para {$extension} foi encontrado");
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <h3>Don't Use The ELSE Keyword</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function login($username, $password) {
+    $row = $this->dbh->fetch('SELECT * FROM user WHERE username = ?', $username);
+    if (!empty($row)) {
+        if ($row['active']) {
+            if (password_verify($password, $row['password'])) {
+                $_SESSION['loggedIn'] = true;
+                header('Location: /dashboard.php');
+                return true;
+            } else {
+                header('Location: /login.php?error=invalid');
+            }
+        } else {
+            header('Location: /login.php?error=inactive');
+        }
+    } else {
+        $attempts = $this->dbh->fetch('SELECT attempts FROM login_attempts WHERE username = ?', $username);
+        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {
+            $this->dbh->query('UPDATE login_attempts SET attempts = attempts + 1 WHERE username = ?', $username);
+            header('Location: /login.php?error=blocked');
+        } else {
+            header('Location: /login.php?error=invalid');
+        }
+    }
+    return false;
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function login($username, $password) {
+    $user = $this->repository->findByUsername($username);
+    if (empty($user)) {
+        $this->checkLoginAttempts($user);
+        return false;
+    }
+
+    return $this->checkUser($user);
+}
+
+protected function checkUser(User $user) {
+    if (!$user->active) {
+        header('Location: /login.php?error=inactive');
+        return false;
+    }
+
+    if (!password_verify($password, $user->password)) {
+        header('Location: /login.php?error=invalid');
+        return false;
+    }
+
+    $this->doLogin($user);
+    retun true;
+}
+
+protected function doLogin(User $user) {
+    $_SESSION['loggedIn'] = true;
+    header('Location: /dashboard.php');
+}
+
+protected function checkLoginAttempts(User $user) {
+    $attempts = $this->repository->touchLoginAttemptsByUser($user);
+    if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {
+        header('Location: /login.php?error=blocked');
+        return;
+    }
+
+    header('Location: /login.php?error=invalid');
+}</code></pre>
+                    </section>
+                    <section>
+                        <h3>Wrap All Primitives And Strings</h3>
+                        <p>Se houver comportamento</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function parse($email)
+{
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Email inválido');
+    }
+    if (!EmailValidator::checkExistingDomain($email)) {
+        throw new InvalidArgumentException('Email inválido');
+    }
+    // ...
+}</code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function parse(Email $email)
+{
+    // ...
+}</code></pre>
+                    </section>
+                    <section>
+                        <h3>First Class Collections</h3>
+                        <p>se a classe é uma coleção, ela não deve outra propriedade</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">class DataCollection
+{
+    protected $data = [];
+}</code></pre>
+</section>
+                    <section>
+                        <h3>One Dot Per Line</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers"></code></pre>
+                    </section>
+                    <section>
+                        <h3>Don't Abbreviate</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers"></code></pre>
+                    </section>
+                    <section>
+                        <h3>Keep All Entities Small</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers"></code></pre>
+                    </section>
+                    <section>
+                        <h3>No Classes With More Than Two Instance Variables</h3>
+                        <p></p>
+                    </section>
+                    <section>
+                        <h3>No Getters/Setters/Properties</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers"></code></pre>
+                    </section>
                 </section>
 
                 <section>
-                    <h2>PHPCS</h2>
+                    <section>
+                        <h2>PHPCS</h2>
+                        <a href="https://github.com/squizlabs/PHP_CodeSniffer">github.com/squizlabs/PHP_CodeSniffer</a>
+                    </section>
+                    <section>
+                        <p>Verifica violações do código de acordo com um conjunto de regras</p>
+                    </section>
                 </section>
 
                 <section>
-                    <h2>PHPMD</h2>
+                    <section>
+                        <h2>PHPMD</h2>
+                        <p><a href="https://phpmd.org/">phpmd.org</a></p>
+                    </section>
+                    <section>
+                        <p>Equivalente à ferramenta PMD do Java, analisa código para detectar diversas anomalias, como:</p>
+                        <ul>
+                            <li>Códigos muito longos ou complexos</li>
+                            <li>Parâmetros e variáveis inutilizados</li>
+                            <li>Nomes muito pequenos ou grandes</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h3>Cyclomatic Complexity</h3>
+                    </section>
+                    <section>
+                        <p>Complexidade determinada de acordo com o número de pontos de decisão <em class="small">(<code>if</code>, <code>while</code>, <code>for</code> e <code>case</code>)</em> + 1</p>
+                        <br>
+                        <ul class="no-list">
+                            <li><code>&nbsp;1-4</code> &mdash; baixa complexidade</li>
+                            <li><code>&nbsp;5-7</code> &mdash; moderada</li>
+                            <li><code>8-10</code> &mdash; alta</li>
+                            <li><code>&nbsp;11+</code> &mdash; muito alta</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function login($username, $password) {                                       // 1
+    $row = $this->dbh->fetch('SELECT * FROM user WHERE username = ?', $username);
+    if (!empty($row)) {                                                             // 2
+        if ($row['active']) {                                                       // 3
+            if (password_verify($password, $row['password'])) {                     // 4
+                $_SESSION['loggedIn'] = true;
+                header('Location: /dashboard.php');
+                return true;
+            } else {
+                header('Location: /login.php?error=invalid');
+            }
+        } else {
+            header('Location: /login.php?error=inactive');
+        }
+    } else {
+        $attempts = $this->dbh->fetch('SELECT attempts FROM login_attempts WHERE username = ?', $username);
+        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {                                // 5
+            $this->dbh->query('UPDATE login_attempts SET attempts = attempts + 1 WHERE username = ?', $username);
+            header('Location: /login.php?error=blocked');
+        } else {
+            header('Location: /login.php?error=invalid');
+        }
+    }
+    return false;
+}</code></pre>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Mais tópicos</h2>
+                    <ul>
+                        <li>DRY</li>
+                        <li>KISS</li>
+                        <li>YAGNI</li>
+                        <li>Law of Demeter</li>
+                        <li>phploc</li>
+                    </ul>
                 </section>
 
                 <section>
                     <h2>Referências</h2>
                     <ul>
                         <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
-                        <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br</a></li>
-                        <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com</a></li>
-                        <li><a href="https://www.netguru.co/codestories/solid-principles-1-single-responsibility-principle">netguru.co</a></li>
+                        <li><a href="https://williamdurand.fr/2013/06/03/object-calisthenics/">williamdurand.fr/2013/06/03/object-calisthenics</a></li>
+                        <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br/2015/01/solid-teoria-e-pratica</a></li>
+                        <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com/solid-principles-530b2cc2badf</a></li>
+                        <li><a href="https://eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics/">eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics</a></li>
+                        <li><a href="https://www.netguru.co/codestories/solid-principles-1-single-responsibility-principle">netguru.co/codestories/solid-principles-1-single-responsibility-principle</a></li>
+                        <li><a href="https://www.slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics">slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics</a></li>
+                        <li><a href="https://github.com/jupeter/clean-code-php">github.com/jupeter/clean-code-php</a></li>
                         <li><a href="https://phpbestpractices.org/">phpbestpractices.org</a></li>
                         <li><a href="https://phptherightway.com/">phptherightway.com</a></li>
                     </ul>

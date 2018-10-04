@@ -1,12 +1,50 @@
-code::-webkit-scrollbar-track {
+pre::-webkit-scrollbar-track {
 	border-radius: 10px;
 	background-color: transparent;
 }
-code::-webkit-scrollbar {
+pre::-webkit-scrollbar {
 	width: 8px;
 	background-color: transparent;
 }
-code::-webkit-scrollbar-thumb {
+pre::-webkit-scrollbar-thumb {
 	border-radius: 10px;
 	background-color: #3e3e3e;
+}
+pre {
+	width: 100%;
+	padding-top: .5em !important;
+}
+pre[class*="language-"].line-numbers > code {
+	overflow: visible;
+}
+ul.no-list {
+	list-style-type: none;
+	margin-left: 0;
+}
+.small {
+	font-size: 0.85em !important;
+}
+
+#solid-acronym {
+	list-style-type: none;
+}
+.letter-block {
+	font-weight: bold !important;
+	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace !important;
+}
+.reveal pre code {
+  font-size: 0.6em;
+  padding: 0;
+}
+.line-numbers-rows > span {
+	line-height: 1.5;
+}
+.line-numbers .line-numbers-rows {
+	border-right-color: #3d3d3d;
+}
+.line-numbers-rows > span:before {
+	color: #5d5d5d;
+}
+.token.string {
+	color: #ead4a3;
 }

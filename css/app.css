@@ -13,9 +13,13 @@ pre::-webkit-scrollbar-thumb {
 pre {
 	width: 100%;
 	padding-top: .5em !important;
+	padding-bottom: .5em !important;
 }
 pre[class*="language-"].line-numbers > code {
 	overflow: visible;
+}
+.reveal section img {
+	border: 0;
 }
 ul.no-list {
 	list-style-type: none;

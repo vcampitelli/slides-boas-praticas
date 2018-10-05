@@ -71,15 +71,15 @@
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">class Report {
-    public function fetch() { /* ... */ }
+    public function fetch();
 }
 
 class HtmlReportWriter {
-    public function export(Report $report) { /* ... */ }
+    public function export(Report $report);
 }
 
 class JsonReportWriter {
-    public function export(Report $report) { /* ... */ }
+    public function export(Report $report);
 }</code></pre>
                     </section>
 
@@ -89,7 +89,7 @@ class JsonReportWriter {
                         <p>entidades devem ser abertas para extensão mas fechadas para modificação</p>
                     </section>
                     <section>
-                        <p>É possível implementar uma nova funcionalidade em seu sistema somente adicionando novas classes ao invés de modificá-las?</p>
+                        <p>É possível implementar uma nova funcionalidade em seu sistema somente adicionando novas classes ao invés de modificar as existentes?</p>
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">class ReportExporter {
@@ -109,9 +109,9 @@ class JsonReportWriter {
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">class ReportExporter {
-    public function toCsv(Report $report) { /* ... */ }
+    public function toCsv(Report $report);
 
-    public function toPdf(Report $report) { /* ... */ }
+    public function toPdf(Report $report);
 }</code></pre>
                     </section>
                     <section>
@@ -148,7 +148,7 @@ $writer->write(/* ... */);
                     <section>
                         <p>Pré-condições não podem ser fortalecidas em uma subclasse</p>
                         <pre><code class="language-php line-numbers">class DatabaseAdapter {
-    public function query(Statement $statement) { /* ... */ }
+    public function query(Statement $statement);
 }
 
 class MyPdoStatement extends Statement {
@@ -157,7 +157,7 @@ class MyPdoStatement extends Statement {
 
 class PdoDatabaseAdapter extends DatabaseAdapter {
     // Errado!
-    public function query(MyPdoStatement $statement) { /* ... */ }
+    public function query(MyPdoStatement $statement);
 }
 </code></pre>
                     </section>
@@ -186,12 +186,8 @@ class Quadrado extends Retangulo {
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
-                        <p>Herança não deve ser utilizada quando uma subclasse restringe a liberdade imposta na classe principal, mas sim quando adiciona mais detalhes</p>
-                        <p>Nesses casos, use composição.</p>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">class
-</code></pre>
+                        <p>Herança não deve ser utilizada quando uma subclasse restringe a liberdade imposta na classe principal, mas sim quando adiciona mais detalhes.</p>
+                        <p>Ela só é necessária quando há similaridade de <em>comportamento</em>. Senão, use composição.</p>
                     </section>
 
                     <!-- SOLID: Interface Segregation -->
@@ -207,6 +203,23 @@ class Quadrado extends Retangulo {
                     </section>
                     <section>
                         <p>Mas toda configuração pode ser modificável?</p>
+                        <pre><code class="language-php line-numbers">class ReadonlyConfig implements ConfigInterface {
+    public function __construct(array $data) {
+        $this->data = $data;
+    }
+
+    public function get($property) {
+        return $this->data[$property];
+    }
+
+    public function set($property, $value) {
+        throw new BadMethodCallException('Não é possível modificar valores em tempo de execução');
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <h4>Como resolver?</h4>
+                        <p>Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
                         <pre><code class="language-php line-numbers">interface ConfigInterface {
     public function get($property);
 }
@@ -216,10 +229,6 @@ interface WritableConfigInterface {
     public function set($property, $value);
 }</code></pre>
                     </section>
-                    <section>
-                        <h4>Como resolver?</h4>
-                        <p>Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
-                    </section>
 
                     <!-- SOLID: Dependency Inversion -->
                     <section>
@@ -227,7 +236,11 @@ interface WritableConfigInterface {
                         <p>dependa de abstrações <em>(interfaces)</em> ao invés de classes concretas</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">// PSR15 - https://www.php-fig.org/psr/psr-15/
+                        <p>
+                            PSR-15<br>
+                            <a href="https://www.php-fig.org/psr/psr-15/">php-fig.org/psr/psr-15</a>
+                        </p>
+                        <pre><code class="language-php line-numbers">
 
 namespace Interop\Http\Server;
 
@@ -281,11 +294,13 @@ interface RequestHandlerInterface {
                         <pre><code class="language-php line-numbers">interface AdapterInterface {
     public function insert($table, array $data);
 }
+
 class RealAdapter extends AdapterInterface {
     public function insert($table, array $data) {
         return $this->pdo->exec('INSERT ...');
     }
 }
+
 class TestsAdapter extends AdapterInterface {
     public function insert($table, array $data) {
         return true;
@@ -395,6 +410,7 @@ protected function getParserForExtension($extension) {
 }</code></pre>
                     </section>
                     <section>
+                        <p>&ldquo;Early return&rdquo;</p>
                         <pre><code class="language-php line-numbers">public function login($username, $password) {
     $user = $this->repository->findByUsername($username);
     if (empty($user)) {
@@ -437,7 +453,6 @@ protected function checkLoginAttempts(User $user) {
                     </section>
                     <section>
                         <h3>Wrap All Primitives And Strings</h3>
-                        <p>Se houver comportamento</p>
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">public function parse($email)
@@ -452,48 +467,99 @@ protected function checkLoginAttempts(User $user) {
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function parse(Email $email)
-{
-    // ...
+                        <p>Se houver comportamento, crie um objeto!</p>
+                        <pre><code class="language-php line-numbers">class Email {
+    public function __construct($email) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('Email inválido');
+        }
+        // outras validações
+    }
+}
+
+class Example {
+    public function parse(Email $email)
+    {
+        // ...
+    }
 }</code></pre>
                     </section>
                     <section>
                         <h3>First Class Collections</h3>
-                        <p>se a classe é uma coleção, ela não deve outra propriedade</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">class DataCollection
+                        <p>Se a classe possui uma coleção, ela não deve ter outras propriedades</p>
+                        <pre><code class="language-php line-numbers">class FilterApplier {
 {
     protected $data = [];
+
+    protected $index;
+
+    public function add(callable $filter);
+
+    public function remove(callable $filter);
+
+    public function run();
 }</code></pre>
 </section>
+                    <section>
+                        <p>Crie collections!</p>
+                        <pre><code class="language-php line-numbers">class FilterApplier {
+    public function __construct(FilterCollection $filterCollection);
+
+    public function run();
+}
+
+class FilterCollection implements Iterator {
+    protected $data = [];
+
+    public function add(callable $filter);
+
+    public function remove(callable $filter);
+}</code></pre>
+                    </section>
                     <section>
                         <h3>One Dot Per Line</h3>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers"></code></pre>
+                        <p>Se você precisa passar por diversos objetos para chamar um método, significa que você precisa saber muito sobre como eles funcionam</p>
+                        <pre><code class="language-php line-numbers">if ($this->getRequest()->getHeaders()->getAccept()->isJson()) {
+    header('Content-type: application/json');
+    return json_encode($response);
+}</code></pre>
                     </section>
                     <section>
-                        <h3>Don't Abbreviate</h3>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers"></code></pre>
-                    </section>
-                    <section>
-                        <h3>Keep All Entities Small</h3>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers"></code></pre>
-                    </section>
-                    <section>
-                        <h3>No Classes With More Than Two Instance Variables</h3>
-                        <p></p>
+                        <p>&ldquo;Law of Demeter&rdquo; e &ldquo;Tell Don't Ask&rdquo;</p>
+                        <pre><code class="language-php line-numbers">if ($this->getRequest()->needsJson()) {
+    header('Content-type: application/json');
+    return json_encode($response);
+}</code></pre>
                     </section>
                     <section>
                         <h3>No Getters/Setters/Properties</h3>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers"></code></pre>
+                        <pre><code class="language-php line-numbers">class Login {
+    public function login(User $user) {
+        // ...
+
+        $attempts = $this->loginAttempts->getByUser($user);
+        $this->loginAttempts->setByUser($user, ++$attempts);
+        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {
+            $this->loginAttempts->blockUserLogin($user);
+        }
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <p>&ldquo;Tell, Don't Ask&rdquo;</p>
+                        <pre><code class="language-php line-numbers">class Login {
+    public function login(User $user) {
+        // ...
+
+        $this->loginAttempts->touchUser($user);
+    }
+}</code></pre>
                     </section>
                 </section>
 
@@ -504,6 +570,12 @@ protected function checkLoginAttempts(User $user) {
                     </section>
                     <section>
                         <p>Verifica violações do código de acordo com um conjunto de regras</p>
+                        <img src="img/phpcs.png" alt="Screenshot de uma execução do PHPCS mostrando erros e alertas no código">
+                    </section>
+                    <section>
+                        <h3>PHPCBF</h3>
+                        <p>Automaticamente corrige algumas violações no código</p>
+                        <img src="img/phpcbf.png" alt="Screenshot de uma execução do PHPCBF corrigindo violações no código">
                     </section>
                 </section>
 
@@ -525,13 +597,6 @@ protected function checkLoginAttempts(User $user) {
                     </section>
                     <section>
                         <p>Complexidade determinada de acordo com o número de pontos de decisão <em class="small">(<code>if</code>, <code>while</code>, <code>for</code> e <code>case</code>)</em> + 1</p>
-                        <br>
-                        <ul class="no-list">
-                            <li><code>&nbsp;1-4</code> &mdash; baixa complexidade</li>
-                            <li><code>&nbsp;5-7</code> &mdash; moderada</li>
-                            <li><code>8-10</code> &mdash; alta</li>
-                            <li><code>&nbsp;11+</code> &mdash; muito alta</li>
-                        </ul>
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">public function login($username, $password) {                                       // 1
@@ -560,6 +625,15 @@ protected function checkLoginAttempts(User $user) {
     return false;
 }</code></pre>
                     </section>
+                    <section>
+                        <p>Graus de Complexidade</p>
+                        <ul class="no-list">
+                            <li><code>&nbsp;1-4</code> &mdash; baixa</li>
+                            <li><code>&nbsp;5-7</code> &mdash; moderada</li>
+                            <li><code>8-10</code> &mdash; alta</li>
+                            <li><code>&nbsp;11+</code> &mdash; muito alta</li>
+                        </ul>
+                    </section>
                 </section>
 
                 <section>
@@ -568,7 +642,6 @@ protected function checkLoginAttempts(User $user) {
                         <li>DRY</li>
                         <li>KISS</li>
                         <li>YAGNI</li>
-                        <li>Law of Demeter</li>
                         <li>phploc</li>
                     </ul>
                 </section>
@@ -577,11 +650,11 @@ protected function checkLoginAttempts(User $user) {
                     <h2>Referências</h2>
                     <ul>
                         <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
-                        <li><a href="https://williamdurand.fr/2013/06/03/object-calisthenics/">williamdurand.fr/2013/06/03/object-calisthenics</a></li>
                         <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br/2015/01/solid-teoria-e-pratica</a></li>
                         <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com/solid-principles-530b2cc2badf</a></li>
-                        <li><a href="https://eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics/">eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics</a></li>
                         <li><a href="https://www.netguru.co/codestories/solid-principles-1-single-responsibility-principle">netguru.co/codestories/solid-principles-1-single-responsibility-principle</a></li>
+                        <li><a href="https://williamdurand.fr/2013/06/03/object-calisthenics/">williamdurand.fr/2013/06/03/object-calisthenics</a></li>
+                        <li><a href="https://eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics/">eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics</a></li>
                         <li><a href="https://www.slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics">slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics</a></li>
                         <li><a href="https://github.com/jupeter/clean-code-php">github.com/jupeter/clean-code-php</a></li>
                         <li><a href="https://phpbestpractices.org/">phpbestpractices.org</a></li>

@@ -28,6 +28,9 @@ ul.no-list {
 .small {
 	font-size: 0.85em !important;
 }
+.smaller {
+	font-size: 0.75em !important;
+}
 
 #solid-acronym {
 	list-style-type: none;

@@ -55,7 +55,6 @@
                         <p>uma classe só pode ter uma única razão para mudar</p>
                     </section>
                     <section>
-
                         <pre><code class="language-php line-numbers">class Report
 {
     public function fetch();
@@ -102,16 +101,8 @@ class JsonReportWriter {
         fclose($handler);
         return $tempFile;
     }
-}</code></pre>
-                    </section>
-                    <section>
-                        Como adicionar um método que exporta como PDF?
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">class ReportExporter {
-    public function toCsv(Report $report);
 
-    public function toPdf(Report $report);
+    public function toXml(Report $report) { /* ... */ }
 }</code></pre>
                     </section>
                     <section>
@@ -128,7 +119,19 @@ class JsonReportWriter {
         }
         return $writer->finish();
     }
-}</code></pre>
+}
+interface WriterInterface {
+    public function init();
+    public function write($row);
+    public function finish();
+}
+class CsvWriter implements WriterInterface { }
+class XmlWriter implements WriterInterface { }
+
+// Em meu sistema, posso trocar o Writer sem medo!
+$reportExporter->export($report, new CsvWriter());
+$reportExporter->export($report, new XmlWriter());
+</code></pre>
                     </section>
 
                     <!-- SOLID: Liskov Substitution -->
@@ -452,73 +455,6 @@ protected function checkLoginAttempts(User $user) {
 }</code></pre>
                     </section>
                     <section>
-                        <h3>Wrap All Primitives And Strings</h3>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">public function parse($email)
-{
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('Email inválido');
-    }
-    if (!EmailValidator::checkExistingDomain($email)) {
-        throw new InvalidArgumentException('Email inválido');
-    }
-    // ...
-}</code></pre>
-                    </section>
-                    <section>
-                        <p>Se houver comportamento, crie um objeto!</p>
-                        <pre><code class="language-php line-numbers">class Email {
-    public function __construct($email) {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('Email inválido');
-        }
-        // outras validações
-    }
-}
-
-class Example {
-    public function parse(Email $email)
-    {
-        // ...
-    }
-}</code></pre>
-                    </section>
-                    <section>
-                        <h3>First Class Collections</h3>
-                    </section>
-                    <section>
-                        <p>Se a classe possui uma coleção, ela não deve ter outras propriedades</p>
-                        <pre><code class="language-php line-numbers">class FilterApplier {
-{
-    protected $data = [];
-
-    protected $index;
-
-    public function add(callable $filter);
-
-    public function remove(callable $filter);
-
-    public function run();
-}</code></pre>
-</section>
-                    <section>
-                        <p>Crie collections!</p>
-                        <pre><code class="language-php line-numbers">class FilterApplier {
-    public function __construct(FilterCollection $filterCollection);
-
-    public function run();
-}
-
-class FilterCollection implements Iterator {
-    protected $data = [];
-
-    public function add(callable $filter);
-
-    public function remove(callable $filter);
-}</code></pre>
-                    </section>
-                    <section>
                         <h3>One Dot Per Line</h3>
                     </section>
                     <section>
@@ -529,36 +465,10 @@ class FilterCollection implements Iterator {
 }</code></pre>
                     </section>
                     <section>
-                        <p>&ldquo;Law of Demeter&rdquo; e &ldquo;Tell Don't Ask&rdquo;</p>
+                        <p>&ldquo;Law of Demeter&rdquo; e &ldquo;Tell, Don't Ask&rdquo;</p>
                         <pre><code class="language-php line-numbers">if ($this->getRequest()->needsJson()) {
     header('Content-type: application/json');
     return json_encode($response);
-}</code></pre>
-                    </section>
-                    <section>
-                        <h3>No Getters/Setters/Properties</h3>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">class Login {
-    public function login(User $user) {
-        // ...
-
-        $attempts = $this->loginAttempts->getByUser($user);
-        $this->loginAttempts->setByUser($user, ++$attempts);
-        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {
-            $this->loginAttempts->blockUserLogin($user);
-        }
-    }
-}</code></pre>
-                    </section>
-                    <section>
-                        <p>&ldquo;Tell, Don't Ask&rdquo;</p>
-                        <pre><code class="language-php line-numbers">class Login {
-    public function login(User $user) {
-        // ...
-
-        $this->loginAttempts->touchUser($user);
-    }
 }</code></pre>
                     </section>
                 </section>
@@ -642,13 +552,13 @@ class FilterCollection implements Iterator {
                         <li>DRY</li>
                         <li>KISS</li>
                         <li>YAGNI</li>
-                        <li>phploc</li>
+                        <li>Code Smells</li>
                     </ul>
                 </section>
 
                 <section>
                     <h2>Referências</h2>
-                    <ul>
+                    <ul class="smaller">
                         <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
                         <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br/2015/01/solid-teoria-e-pratica</a></li>
                         <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com/solid-principles-530b2cc2badf</a></li>

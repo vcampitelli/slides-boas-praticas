@@ -411,13 +411,11 @@ protected function checkLoginAttempts(User $user) {
     header('Location: /login.php?error=invalid');
 }</code></pre>
                     </section>
-                    </section>
                     <section>
                         <h3>Wrap All Primitives And Strings</h3>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function parse($email)
-{
+                        <pre><code class="language-php line-numbers">public function parse($email) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new InvalidArgumentException('Email inválido');
     }
@@ -438,8 +436,7 @@ protected function checkLoginAttempts(User $user) {
     }
 }
 class Example {
-    public function parse(Email $email)
-    {
+    public function parse(Email $email) {
         // ...
     }
 }</code></pre>

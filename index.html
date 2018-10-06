@@ -73,12 +73,9 @@
     public function fetch();
 }
 
-class HtmlReportWriter {
-    public function export(Report $report);
-}
-
-class JsonReportWriter {
-    public function export(Report $report);
+class ReportWriter {
+    public function asHtml(Report $report);
+    public function asJson(Report $report);
 }</code></pre>
                     </section>
 
@@ -168,24 +165,44 @@ class PdoDatabaseAdapter extends DatabaseAdapter {
                         <p>Pós-condições não podem ser enfraquecidas em uma subclasse</p>
                         <pre><code class="language-php line-numbers">class Retangulo {
     public function setAltura($altura) {
-        $this->altura = $altura;
+        $this->altura = (float) $altura;
     }
     public function setLargura($largura) {
-        $this->largura = $largura;
+        $this->largura = (float) $largura;
+    }
+    public function getAltura() {
+        return $this->altura;
+    }
+    public function getLargura() {
+        return $this->largura;
     }
 }
 
 class Quadrado extends Retangulo {
     public function setAltura($altura) {
-        $this->altura = $altura;
-        $this->largura = $altura;
+        $this->altura = (float) $altura;
+        $this->largura = (float) $altura;
     }
     public function setLargura($largura) {
-        $this->altura = $largura;
-        $this->largura = $largura;
+        $this->altura = (float) $largura;
+        $this->largura = (float) $largura;
     }
 }
 </code></pre>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">function area(Retangulo $retangulo) {
+    return $retangulo->getAltura() * $retangulo->getLargura();
+}
+
+$retangulo = new Retangulo();
+$retangulo->setAltura(5);
+$retangulo->setLargura(4);
+
+if (area($retangulo) != 20) {
+    throw new UnexpectedValueException("Algo não está certo");
+}</code></pre>
+                        <p class="fragment">E se trocarmos para <code>new Quadrado()</code>?</p>
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
@@ -199,38 +216,34 @@ class Quadrado extends Retangulo {
                         <p>é preferível ter várias interfaces mais específicas do que uma genérica</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">interface ConfigInterface {
-    public function get($property);
-    public function set($property, $value);
+                        <pre><code class="language-php line-numbers">interface AveInterface {
+    public function bicar();
+    public function voar();
 }</code></pre>
                     </section>
                     <section>
-                        <p>Mas toda configuração pode ser modificável?</p>
-                        <pre><code class="language-php line-numbers">class ReadonlyConfig implements ConfigInterface {
-    public function __construct(array $data) {
-        $this->data = $data;
-    }
-
-    public function get($property) {
-        return $this->data[$property];
-    }
-
-    public function set($property, $value) {
-        throw new BadMethodCallException('Não é possível modificar valores em tempo de execução');
+                        <p>Mas nem toda ave voa!</p>
+                        <pre><code class="language-php line-numbers">class Pinguim implements AveInterface {
+    public function bicar() { /* ... */ }
+    public function voar() {
+        return false;
     }
 }</code></pre>
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
                         <p>Segrege suas interfaces ao invés de criar uma que atenda todos os casos</p>
-                        <pre><code class="language-php line-numbers">interface ConfigInterface {
-    public function get($property);
+                        <pre><code class="language-php line-numbers">interface AveInterface {
+    public function bicar();
 }
 
-interface WritableConfigInterface {
-    public function get($property);
-    public function set($property, $value);
-}</code></pre>
+interface VoadorInterface {
+    public function voar();
+}
+
+class Papagaio implements AveInterface, VoadorInterface { /* ... */ }
+class Pinguim implements AveInterface { /* ... */ }
+</code></pre>
                     </section>
 
                     <!-- SOLID: Dependency Inversion -->
@@ -243,79 +256,26 @@ interface WritableConfigInterface {
                             PSR-15<br>
                             <a href="https://www.php-fig.org/psr/psr-15/">php-fig.org/psr/psr-15</a>
                         </p>
-                        <pre><code class="language-php line-numbers">
-
-namespace Interop\Http\Server;
-
-use Psr\Http\Message\ResponseInterface;
+                        <pre><code class="language-php line-numbers">use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Zend\Diactoros\Response\JsonResponse;
 
-interface RequestHandlerInterface {
-    public function handle(
-        ServerRequestInterface $request
-    ): ResponseInterface;
-}</code></pre>
-                    </section>
-                    <section>
-                        <p>Isso facilita muito para fazer testes!</p>
-                        <pre><code class="language-php line-numbers">class UserRepository {
-    public function __construct(Adapter $adapter) {
-        /* ... */
-    }
-
-    public function create(User $user) {
-        $this->adapter->insert('users', /* ... */);
+class ActionHandler implements RequestHandlerInterface {
+    public function handle(ServerRequestInterface $request) : ResponseInterface {
+        return new JsonResponse(['status' => true]);
     }
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">class UserRepositoryTest {
-    public function __construct() {
-        $this->adapter = new Adapter();
-        // É preciso sempre limpar a base antes de começar
-        $this->adapter->delete('users');
-    }
-
-    public function run() {
-        $repository = new UserRepository($this->adapter);
-        $repository->save(new User());
-    }
-}</code></pre>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">class UserRepository {
-    public function __construct(AdapterInterface $adapter) {
-        /* ... */
-    }
-
-    public function create(User $user) {
-        $this->adapter->insert('users', /* ... */);
-    }
-}</code></pre>
-                    </section>
-                    <section>
-                        <pre><code class="language-php line-numbers">interface AdapterInterface {
-    public function insert($table, array $data);
-}
-
-class RealAdapter extends AdapterInterface {
-    public function insert($table, array $data) {
-        return $this->pdo->exec('INSERT ...');
-    }
-}
-
-class TestsAdapter extends AdapterInterface {
-    public function insert($table, array $data) {
-        return true;
-    }
-}
-</code></pre>
+                        <p>Depender de interfaces nos fornece grande flexibilidade para mudar partes do sistema sem afetar o funcionamento do todo</p>
+                        <p><em>Design by contract</em></p>
                     </section>
                 </section>
 
                 <section>
                     <section>
-                        <h2>ODWFODKNN</h2>
+                        <h2>Object Calisthenics</h2>
                     </section>
                     <section>
                         <ul>
@@ -329,9 +289,6 @@ class TestsAdapter extends AdapterInterface {
                             <li>No Classes With More Than Two Instance Variables</li>
                             <li>No Getters/Setters/Properties</li>
                         </ul>
-                    </section>
-                    <section>
-                        <h2>Object Calisthenics</h2>
                     </section>
                     <section>
                         <h3>Only One Level Of Indentation Per Method</h3>
@@ -413,7 +370,7 @@ protected function getParserForExtension($extension) {
 }</code></pre>
                     </section>
                     <section>
-                        <p>&ldquo;Early return&rdquo;</p>
+                        <p><em>Early return</em></p>
                         <pre><code class="language-php line-numbers">public function login($username, $password) {
     $user = $this->repository->findByUsername($username);
     if (empty($user)) {
@@ -454,21 +411,120 @@ protected function checkLoginAttempts(User $user) {
     header('Location: /login.php?error=invalid');
 }</code></pre>
                     </section>
+                    </section>
+                    <section>
+                        <h3>Wrap All Primitives And Strings</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">public function parse($email)
+{
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Email inválido');
+    }
+    if (!EmailValidator::checkExistingDomain($email)) {
+        throw new InvalidArgumentException('Email inválido');
+    }
+    // ...
+}</code></pre>
+                    </section>
+                    <section>
+                        <p>Se houver comportamento, crie um objeto!</p>
+                        <pre><code class="language-php line-numbers">class Email {
+    public function __construct($email) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('Email inválido');
+        }
+        // outras validações
+    }
+}
+class Example {
+    public function parse(Email $email)
+    {
+        // ...
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <h3>First Class Collections</h3>
+                    </section>
+                    <section>
+                        <p>Se a classe possui uma coleção, ela não deve ter outras propriedades</p>
+                        <pre><code class="language-php line-numbers">class FilterApplier {
+{
+    protected $data = [];
+    protected $index;
+    public function add(callable $filter);
+    public function remove(callable $filter);
+    public function run();
+}</code></pre>
+</section>
+                    <section>
+                        <p>Crie collections!</p>
+                        <pre><code class="language-php line-numbers">class FilterApplier {
+    public function __construct(FilterCollection $filterCollection);
+    public function run();
+}
+class FilterCollection implements Iterator {
+    protected $data = [];
+    public function add(callable $filter);
+    public function remove(callable $filter);
+}</code></pre>
+                    </section>
+
                     <section>
                         <h3>One Dot Per Line</h3>
                     </section>
                     <section>
                         <p>Se você precisa passar por diversos objetos para chamar um método, significa que você precisa saber muito sobre como eles funcionam</p>
-                        <pre><code class="language-php line-numbers">if ($this->getRequest()->getHeaders()->getAccept()->isJson()) {
-    header('Content-type: application/json');
-    return json_encode($response);
+                        <pre><code class="language-php line-numbers">class Controller {
+    public function run() {
+        if ($this->getRequest()->getHeader('Accept') == 'application/json') {
+            header('Content-type: application/json');
+            return json_encode(['status' => true]);
+        }
+    }
 }</code></pre>
                     </section>
                     <section>
-                        <p>&ldquo;Law of Demeter&rdquo; e &ldquo;Tell, Don't Ask&rdquo;</p>
-                        <pre><code class="language-php line-numbers">if ($this->getRequest()->needsJson()) {
-    header('Content-type: application/json');
-    return json_encode($response);
+                        <p><em>Law of Demeter</em> e <em>Tell, Don't Ask</em></p>
+                        <pre><code class="language-php line-numbers">class Controller {
+    public function run() {
+        if ($this->getRequest()->needsJson()) {
+            header('Content-type: application/json');
+            return json_encode(['status' => true]);
+        }
+    }
+}
+
+class Request {
+    public function needsJson() {
+        return $this->getHeader('Accept') == 'application/json';
+    }
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <h3>No Getters/Setters/Properties</h3>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">class Login {
+    public function login(User $user) {
+        // ...
+        $attempts = $this->loginAttempts->getByUser($user);
+        $this->loginAttempts->setByUser($user, ++$attempts);
+        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {
+            $this->loginAttempts->blockUserLogin($user);
+        }
+    }
+}</code></pre>
+                    </section>
+                    <section>
+                        <p>&ldquo;Tell, Don't Ask&rdquo;</p>
+                        <pre><code class="language-php line-numbers">class Login {
+    public function login(User $user) {
+        // ...
+        $this->loginAttempts->touchUser($user);
+    }
 }</code></pre>
                     </section>
                 </section>
@@ -476,7 +532,8 @@ protected function checkLoginAttempts(User $user) {
                 <section>
                     <section>
                         <h2>PHPCS</h2>
-                        <a href="https://github.com/squizlabs/PHP_CodeSniffer">github.com/squizlabs/PHP_CodeSniffer</a>
+                        <p><a href="https://github.com/squizlabs/PHP_CodeSniffer">github.com/squizlabs/PHP_CodeSniffer</a></p>
+                        <a href="https://github.com/object-calisthenics/phpcs-calisthenics-rules" class="small">Plugin de Object Calisthenics para o PHPCS</a>
                     </section>
                     <section>
                         <p>Verifica violações do código de acordo com um conjunto de regras</p>
@@ -497,9 +554,10 @@ protected function checkLoginAttempts(User $user) {
                     <section>
                         <p>Equivalente à ferramenta PMD do Java, analisa código para detectar diversas anomalias, como:</p>
                         <ul>
-                            <li>Códigos muito longos ou complexos</li>
-                            <li>Parâmetros e variáveis inutilizados</li>
-                            <li>Nomes muito pequenos ou grandes</li>
+                            <li>Nomes muito pequenos ou grandes;</li>
+                            <li>Códigos muito longos ou complexos;</li>
+                            <li>Parâmetros e variáveis inutilizados;</li>
+                            <li>e muitos outros</li>
                         </ul>
                     </section>
                     <section>
@@ -509,30 +567,25 @@ protected function checkLoginAttempts(User $user) {
                         <p>Complexidade determinada de acordo com o número de pontos de decisão <em class="small">(<code>if</code>, <code>while</code>, <code>for</code> e <code>case</code>)</em> + 1</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function login($username, $password) {                                       // 1
-    $row = $this->dbh->fetch('SELECT * FROM user WHERE username = ?', $username);
-    if (!empty($row)) {                                                             // 2
-        if ($row['active']) {                                                       // 3
-            if (password_verify($password, $row['password'])) {                     // 4
-                $_SESSION['loggedIn'] = true;
-                header('Location: /dashboard.php');
-                return true;
-            } else {
-                header('Location: /login.php?error=invalid');
-            }
-        } else {
-            header('Location: /login.php?error=inactive');
+                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {                         // 1
+    foreach ($files as $file) {                                 // 2
+        if (!is_file($file)) {                                  // 3
+            throw new RuntimeException("{$file} não é válido");
         }
-    } else {
-        $attempts = $this->dbh->fetch('SELECT attempts FROM login_attempts WHERE username = ?', $username);
-        if ($attempts >= self::MAX_LOGIN_ATTEMTPS) {                                // 5
-            $this->dbh->query('UPDATE login_attempts SET attempts = attempts + 1 WHERE username = ?', $username);
-            header('Location: /login.php?error=blocked');
-        } else {
-            header('Location: /login.php?error=invalid');
+        switch (pathinfo($file, PATHINFO_EXTENSION)) {
+            case 'js':                                          // 4
+                // ...
+                break;
+
+            case 'html':                                        // 5
+                // ...
+                break;
+
+            case 'css':                                         // 6
+                // ...
+                break;
         }
     }
-    return false;
 }</code></pre>
                     </section>
                     <section>
@@ -549,16 +602,17 @@ protected function checkLoginAttempts(User $user) {
                 <section>
                     <h2>Mais tópicos</h2>
                     <ul>
-                        <li>DRY</li>
-                        <li>KISS</li>
-                        <li>YAGNI</li>
-                        <li>Code Smells</li>
+                        <li><a href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a></li>
+                        <li><a href="https://en.wikipedia.org/wiki/KISS_principle">KISS</a></li>
+                        <li><a href="https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it">YAGNI</a></li>
+                        <li><a href="https://en.wikipedia.org/wiki/Code_smell">Code Smells</a></li>
                     </ul>
                 </section>
 
                 <section>
                     <h2>Referências</h2>
                     <ul class="smaller">
+                        <li>Livro "Clean Code", do Uncle Bob</li>
                         <li><a href="https://imasters.com.br/back-end/solid-com-php">imasters.com.br/back-end/solid-com-php</a></li>
                         <li><a href="http://www.eduardopires.net.br/2015/01/solid-teoria-e-pratica/">eduardopires.net.br/2015/01/solid-teoria-e-pratica</a></li>
                         <li><a href="https://hackernoon.com/solid-principles-530b2cc2badf">hackernoon.com/solid-principles-530b2cc2badf</a></li>
@@ -567,9 +621,12 @@ protected function checkLoginAttempts(User $user) {
                         <li><a href="https://eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics/">eltonminetto.net/2016/06/24/como-melhorar-seus-codigos-usando-object-calisthenics</a></li>
                         <li><a href="https://www.slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics">slideshare.net/guilhermeblanco/php-para-adultos-clean-code-e-object-calisthenics</a></li>
                         <li><a href="https://github.com/jupeter/clean-code-php">github.com/jupeter/clean-code-php</a></li>
-                        <li><a href="https://phpbestpractices.org/">phpbestpractices.org</a></li>
-                        <li><a href="https://phptherightway.com/">phptherightway.com</a></li>
                     </ul>
+                </section>
+
+                <section>
+                    <h2>Obrigado!</h2>
+                    <a href="http://vcampitelli.github.io">vcampitelli.github.io</a></li>
                 </section>
             </div>
         </div>

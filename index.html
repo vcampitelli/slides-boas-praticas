@@ -55,8 +55,7 @@
                         <p>uma classe só pode ter uma única razão para mudar</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">class Report
-{
+                        <pre><code class="language-php line-numbers">class Report {
     public function fetch();
 
     public function asHtml();
@@ -122,8 +121,8 @@ interface WriterInterface {
     public function write($row);
     public function finish();
 }
-class CsvWriter implements WriterInterface { }
-class XmlWriter implements WriterInterface { }
+class CsvWriter implements WriterInterface { /* ... */ }
+class XmlWriter implements WriterInterface { /* ... */ }
 
 // Em meu sistema, posso trocar o Writer sem medo!
 $reportExporter->export($report, new CsvWriter());
@@ -176,19 +175,7 @@ class PdoDatabaseAdapter extends DatabaseAdapter {
     public function getLargura() {
         return $this->largura;
     }
-}
-
-class Quadrado extends Retangulo {
-    public function setAltura($altura) {
-        $this->altura = (float) $altura;
-        $this->largura = (float) $altura;
-    }
-    public function setLargura($largura) {
-        $this->altura = (float) $largura;
-        $this->largura = (float) $largura;
-    }
-}
-</code></pre>
+}</code></pre>
                     </section>
                     <section>
                         <pre><code class="language-php line-numbers">function area(Retangulo $retangulo) {
@@ -202,7 +189,33 @@ $retangulo->setLargura(4);
 if (area($retangulo) != 20) {
     throw new UnexpectedValueException("Algo não está certo");
 }</code></pre>
-                        <p class="fragment">E se trocarmos para <code>new Quadrado()</code>?</p>
+                    </section>
+                    <section>
+                        <pre><code class="language-php line-numbers">class Quadrado extends Retangulo {
+    public function setAltura($altura) {
+        $this->altura = (float) $altura;
+        $this->largura = (float) $altura;
+    }
+    public function setLargura($largura) {
+        $this->altura = (float) $largura;
+        $this->largura = (float) $largura;
+    }
+}
+</code></pre>
+                    </section>
+                    <section>
+                        <p>O que acontece ao executar o mesmo código do cálculo de área, mas passando um objeto <code>Quadrado</code>?</p>
+                        <pre><code class="language-php line-numbers">function area(Retangulo $retangulo) {
+    return $retangulo->getAltura() * $retangulo->getLargura();
+}
+
+$quadrado = new Quadrado();
+$quadrado->setAltura(5);
+$quadrado->setLargura(4);
+
+if (area($quadrado) != 20) {
+    throw new UnexpectedValueException("Algo não está certo");
+}</code></pre>
                     </section>
                     <section>
                         <h4>Como resolver?</h4>
@@ -243,6 +256,7 @@ interface VoadorInterface {
 
 class Papagaio implements AveInterface, VoadorInterface { /* ... */ }
 class Pinguim implements AveInterface { /* ... */ }
+class Esquilo implements VoadorInterface { /* ... */ }
 </code></pre>
                     </section>
 
@@ -294,7 +308,7 @@ class ActionHandler implements RequestHandlerInterface {
                         <h3>Only One Level Of Indentation Per Method</h3>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {
+                        <pre><code class="language-php line-numbers">public function minify(array $files) {
     foreach ($files as $file) {
         if (!is_file($file)) {
             throw new RuntimeException("{$file} não é válido");
@@ -316,7 +330,7 @@ class ActionHandler implements RequestHandlerInterface {
 }</code></pre>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {
+                        <pre><code class="language-php line-numbers">public function minify(array $files) {
     foreach ($files as $file) {
         $this->parseFile($file);
     }
@@ -447,7 +461,6 @@ class Example {
                     <section>
                         <p>Se a classe possui uma coleção, ela não deve ter outras propriedades</p>
                         <pre><code class="language-php line-numbers">class FilterApplier {
-{
     protected $data = [];
     protected $index;
     public function add(callable $filter);
@@ -475,7 +488,7 @@ class FilterCollection implements Iterator {
                         <p>Se você precisa passar por diversos objetos para chamar um método, significa que você precisa saber muito sobre como eles funcionam</p>
                         <pre><code class="language-php line-numbers">class Controller {
     public function run() {
-        if ($this->getRequest()->getHeader('Accept') == 'application/json') {
+        if ($this->getRequest()->getHeaders()->get('Accept') == 'application/json') {
             header('Content-type: application/json');
             return json_encode(['status' => true]);
         }
@@ -492,10 +505,14 @@ class FilterCollection implements Iterator {
         }
     }
 }
-
 class Request {
     public function needsJson() {
-        return $this->getHeader('Accept') == 'application/json';
+        return $this->getHeaders()->needsJson();
+    }
+}
+class Headers {
+    public function needsJson() {
+        return $this->get('Accept') === 'application/json';
     }
 }
 </code></pre>
@@ -564,7 +581,7 @@ class Request {
                         <p>Complexidade determinada de acordo com o número de pontos de decisão <em class="small">(<code>if</code>, <code>while</code>, <code>for</code> e <code>case</code>)</em> + 1</p>
                     </section>
                     <section>
-                        <pre><code class="language-php line-numbers">public function minifiy(array $files) {                         // 1
+                        <pre><code class="language-php line-numbers">public function minify(array $files) {                         // 1
     foreach ($files as $file) {                                 // 2
         if (!is_file($file)) {                                  // 3
             throw new RuntimeException("{$file} não é válido");
